@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Finger Gun">
+<meta name="theme-color" content="#0a0c10">
+<title>Finger Gun</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+
+:root{
+  --red:#ff2d2d;--green:#00ff88;--blue:#00cfff;--amber:#ffb800;
+  --bg:#080b10;--panel:#0f141d;--border:#1a2235;--text:#b8cce0;--dim:#3a4e68;
+}
+
+html,body{
+  width:100%;height:100%;overflow:hidden;
+  background:var(--bg);color:var(--text);
+  font-family:'Share Tech Mono',monospace;
+  touch-action:none;
+  -webkit-user-select:none;user-select:none;
+}
+
+body::before{
+  content:'';position:fixed;inset:0;
+  background:
+    repeating-linear-gradient(0deg,transparent,transparent 44px,rgba(0,207,255,0.012) 44px,rgba(0,207,255,0.012) 45px),
+    repeating-linear-gradient(90deg,transparent,transparent 44px,rgba(0,207,255,0.012) 44px,rgba(0,207,255,0.012) 45px);
+  pointer-events:none;z-index:0;
+}
+
+/* ── SCREENS ── */
+.screen{
+  position:fixed;inset:0;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:env(safe-area-inset-top,20px) 24px env(safe-area-inset-bottom,20px);
+  z-index:10;
+  transition:opacity .25s;
+}
+.screen.hidden{opacity:0;pointer-events:none;}
+
+/* ── START ── */
+#start-screen{gap:0;}
+
+.logo{
+  font-family:'Orbitron',sans-serif;
+  font-size:clamp(36px,10vw,64px);
+  font-weight:900;
+  color:#fff;
+  letter-spacing:6px;
+  text-shadow:0 0 30px rgba(0,255,136,.5),0 0 80px rgba(0,255,136,.2);
+  animation:logopulse 3s ease-in-out infinite;
+  margin-bottom:4px;
+}
+@keyframes logopulse{0%,100%{text-shadow:0 0 30px rgba(0,255,136,.4),0 0 60px rgba(0,255,136,.15);}50%{text-shadow:0 0 50px rgba(0,255,136,.7),0 0 100px rgba(0,255,136,.3);}}
+
+.tagline{font-size:10px;letter-spacing:4px;color:var(--dim);text-transform:uppercase;margin-bottom:32px;}
+
+.card{
+  background:rgba(0,207,255,.04);
+  border:1px solid rgba(0,207,255,.12);
+  border-radius:8px;
+  padding:20px;
+  width:100%;max-width:360px;
+  margin-bottom:28px;
+}
+
+.gesture-row{display:flex;justify-content:space-around;margin-bottom:16px;}
+.gesture-item{text-align:center;}
+.gesture-emoji{font-size:44px;display:block;margin-bottom:6px;}
+.gesture-lbl{font-size:9px;letter-spacing:3px;color:var(--dim);text-transform:uppercase;}
+
+.tip{font-size:12px;color:var(--text);line-height:1.9;}
+.tip b{color:var(--green);}
+
+.btn{
+  font-family:'Orbitron',sans-serif;
+  font-size:12px;font-weight:700;
+  letter-spacing:4px;text-transform:uppercase;
+  padding:16px 48px;
+  background:transparent;
+  color:var(--green);
+  border:1px solid var(--green);
+  border-radius:2px;
+  cursor:pointer;
+  transition:all .2s;
+  width:100%;max-width:280px;
+}
+.btn:active{transform:scale(.96);background:rgba(0,255,136,.08);}
+
+#err{
+  display:none;
+  margin-top:16px;
+  font-size:11px;color:var(--red);
+  background:rgba(255,45,45,.07);
+  border:1px solid rgba(255,45,45,.2);
+  border-radius:6px;
+  padding:12px 16px;
+  width:100%;max-width:360px;
+  text-align:center;
+  line-height:1.7;
+}
+
+/* ── GAME ── */
+#game-screen{padding:0;justify-content:flex-start;}
+
+#hud{
+  position:relative;z-index:20;
+  width:100%;
+  display:flex;justify-content:space-between;align-items:center;
+  padding:env(safe-area-inset-top,12px) 16px 10px;
+  background:linear-gradient(to bottom,rgba(8,11,16,.95),rgba(8,11,16,0));
+  pointer-events:none;
+}
+.hud-cell{text-align:center;min-width:70px;}
+.hud-lbl{font-size:8px;letter-spacing:2px;color:var(--dim);text-transform:uppercase;}
+.hud-val{font-family:'Orbitron',sans-serif;font-size:20px;font-weight:700;color:var(--green);line-height:1.1;}
+#hud-status-val{font-size:11px;color:var(--blue);letter-spacing:1px;}
+#hud-time-val{color:var(--amber);}
+#hud-time-val.warn{color:var(--red);animation:blink .5s step-end infinite;}
+@keyframes blink{50%{opacity:.4;}}
+
+#cam-wrap{
+  position:absolute;inset:0;
+  background:#000;
+  overflow:hidden;
+}
+
+#vid{
+  position:absolute;inset:0;
+  width:100%;height:100%;
+  object-fit:cover;
+  transform:scaleX(-1);
+}
+
+#overlay,#gc{
+  position:absolute;inset:0;
+  width:100%;height:100%;
+  pointer-events:none;
+}
+#overlay{transform:scaleX(-1);}
+#gc{z-index:5;}
+
+/* corner decorations */
+.cnr{position:absolute;width:22px;height:22px;z-index:6;pointer-events:none;}
+.cnr-tl{top:10px;left:10px;border-top:2px solid var(--green);border-left:2px solid var(--green);}
+.cnr-tr{top:10px;right:10px;border-top:2px solid var(--green);border-right:2px solid var(--green);}
+.cnr-bl{bottom:10px;left:10px;border-bottom:2px solid var(--green);border-left:2px solid var(--green);}
+.cnr-br{bottom:10px;right:10px;border-bottom:2px solid var(--green);border-right:2px solid var(--green);}
+
+/* scan line */
+#scanline{
+  position:absolute;top:0;left:0;right:0;height:2px;
+  background:linear-gradient(to right,transparent,rgba(0,255,136,.4),transparent);
+  z-index:7;pointer-events:none;
+  animation:scan 3s linear infinite;
+}
+@keyframes scan{0%{top:0;}100%{top:100%;}}
+
+/* ── RESULT ── */
+#result-screen{gap:12px;}
+.result-lbl{font-size:9px;letter-spacing:4px;color:var(--dim);text-transform:uppercase;}
+.big-score{
+  font-family:'Orbitron',sans-serif;
+  font-size:clamp(72px,20vw,120px);
+  font-weight:900;
+  color:var(--green);
+  text-shadow:0 0 40px rgba(0,255,136,.6);
+  line-height:1;
+}
+</style>
+</head>
+<body>
+
+<!-- START -->
+<div class="screen" id="start-screen">
+  <div class="logo">FINGER GUN</div>
+  <div class="tagline">Camera Shooting Game</div>
+
+  <div class="card">
+    <div class="gesture-row">
+      <div class="gesture-item">
+        <span class="gesture-emoji">☝️</span>
+        <span class="gesture-lbl">Aim</span>
+      </div>
+      <div class="gesture-item">
+        <span class="gesture-emoji">➡️</span>
+        <span class="gesture-lbl">Point</span>
+      </div>
+      <div class="gesture-item">
+        <span class="gesture-emoji">🤜</span>
+        <span class="gesture-lbl">Shoot</span>
+      </div>
+    </div>
+    <p class="tip">
+      <b>Aim</b> — Extend only your index finger (curl the rest). A crosshair tracks your fingertip.<br><br>
+      <b>Shoot</b> — Quickly curl your index finger down like a trigger pull to fire!
+    </p>
+  </div>
+
+  <button class="btn" id="start-btn">START GAME</button>
+  <div id="err"></div>
+</div>
+
+<!-- GAME -->
+<div class="screen hidden" id="game-screen">
+  <div id="cam-wrap">
+    <video id="vid" autoplay playsinline muted></video>
+    <canvas id="overlay"></canvas>
+    <canvas id="gc"></canvas>
+    <div class="cnr cnr-tl"></div>
+    <div class="cnr cnr-tr"></div>
+    <div class="cnr cnr-bl"></div>
+    <div class="cnr cnr-br"></div>
+    <div id="scanline"></div>
+  </div>
+  <div id="hud">
+    <div class="hud-cell">
+      <div class="hud-lbl">Score</div>
+      <div class="hud-val" id="hud-score">0</div>
+    </div>
+    <div class="hud-cell">
+      <div class="hud-lbl">Status</div>
+      <div class="hud-val" id="hud-status-val">READY</div>
+    </div>
+    <div class="hud-cell">
+      <div class="hud-lbl">Time</div>
+      <div class="hud-val" id="hud-time-val">30</div>
+    </div>
+  </div>
+</div>
+
+<!-- RESULT -->
+<div class="screen hidden" id="result-screen">
+  <div class="result-lbl">Mission Complete</div>
+  <div class="big-score" id="final-score">0</div>
+  <div class="result-lbl" style="margin-bottom:32px">targets eliminated</div>
+  <button class="btn" id="restart-btn">PLAY AGAIN</button>
+</div>
+
+<!-- MediaPipe CDN -->
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+
+<script>
+const $=id=>document.getElementById(id);
+const vid=$('vid'), overlayC=$('overlay'), gcC=$('gc');
+const octx=overlayC.getContext('2d'), gctx=gcC.getContext('2d');
+
+let score=0,timeLeft=30,gameActive=false;
+let targets=[],particles=[],shots=[];
+let fingerWasUp=false,shootCD=0;
+let animId,timerInt,indexTip=null;
+let mpCam=null;
+
+function resize(){
+  const W=window.innerWidth,H=window.innerHeight;
+  overlayC.width=gcC.width=W;
+  overlayC.height=gcC.height=H;
+}
+resize();
+window.addEventListener('resize',resize);
+
+// ── COLORS ──
+const COLS=['#ff2d2d','#00ff88','#00cfff','#ffb800','#ff66cc','#aa44ff'];
+
+// ── TARGETS ──
+function spawnTarget(){
+  const W=gcC.width,H=gcC.height;
+  const hudH=70, r=28+Math.random()*20;
+  targets.push({
+    x:r+Math.random()*(W-r*2),
+    y:hudH+r+Math.random()*(H-hudH-r*2),
+    r,born:Date.now(),
+    life:2000+Math.random()*2000,
+    color:COLS[Math.floor(Math.random()*COLS.length)],
+    hit:false,sc:0
+  });
+}
+
+// ── PARTICLES ──
+function spawnParticles(x,y,color){
+  for(let i=0;i<16;i++){
+    const a=Math.random()*Math.PI*2,sp=3+Math.random()*5;
+    particles.push({x,y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,life:1,r:2+Math.random()*3,color});
+  }
+}
+
+// ── DRAW ──
+function draw(){
+  const W=gcC.width,H=gcC.height,now=Date.now();
+  gctx.clearRect(0,0,W,H);
+
+  // Targets
+  targets.forEach(t=>{
+    if(t.hit)return;
+    const frac=Math.min((now-t.born)/t.life,1);
+    t.sc=Math.min(t.sc+0.08,1);
+    const alpha=frac>.75?1-(frac-.75)/.25:1;
+    gctx.save();
+    gctx.globalAlpha=alpha;
+    gctx.translate(t.x,t.y);
+    gctx.scale(t.sc,t.sc);
+    // glow
+    gctx.shadowColor=t.color;gctx.shadowBlur=15;
+    // outer countdown arc
+    gctx.beginPath();
+    gctx.arc(0,0,t.r+7,-Math.PI/2,-Math.PI/2+(1-frac)*Math.PI*2);
+    gctx.strokeStyle=t.color;gctx.lineWidth=2.5;gctx.stroke();
+    // body
+    gctx.beginPath();gctx.arc(0,0,t.r,0,Math.PI*2);
+    gctx.fillStyle=t.color+'1a';gctx.fill();
+    gctx.strokeStyle=t.color;gctx.lineWidth=1.5;gctx.stroke();
+    // inner rings
+    [.65,.35].forEach(f=>{
+      gctx.beginPath();gctx.arc(0,0,t.r*f,0,Math.PI*2);
+      gctx.strokeStyle=t.color+'88';gctx.lineWidth=1;gctx.stroke();
+    });
+    gctx.beginPath();gctx.arc(0,0,4,0,Math.PI*2);
+    gctx.fillStyle=t.color;gctx.fill();
+    gctx.restore();
+  });
+
+  // Shot lines
+  shots=shots.filter(s=>s.life>0);
+  shots.forEach(s=>{
+    gctx.save();
+    gctx.globalAlpha=s.life*.8;
+    gctx.strokeStyle=s.color;gctx.lineWidth=2;
+    gctx.shadowColor=s.color;gctx.shadowBlur=10;
+    gctx.beginPath();gctx.moveTo(s.x1,s.y1);gctx.lineTo(s.x2,s.y2);gctx.stroke();
+    gctx.restore();
+    s.life-=.1;
+  });
+
+  // Particles
+  particles=particles.filter(p=>p.life>0);
+  particles.forEach(p=>{
+    gctx.save();
+    gctx.globalAlpha=p.life;
+    gctx.fillStyle=p.color;
+    gctx.shadowColor=p.color;gctx.shadowBlur=8;
+    gctx.beginPath();gctx.arc(p.x,p.y,p.r,0,Math.PI*2);gctx.fill();
+    gctx.restore();
+    p.x+=p.vx;p.y+=p.vy;p.vy+=.18;p.life-=.035;
+  });
+
+  // Crosshair
+  if(indexTip){
+    const cx=indexTip.x*W,cy=indexTip.y*H;
+    gctx.save();
+    gctx.strokeStyle='#00ff88';
+    gctx.shadowColor='#00ff88';gctx.shadowBlur=12;
+    gctx.lineWidth=1.5;
+    const sz=16,gap=6;
+    [[cx-sz,cy,cx-gap,cy],[cx+gap,cy,cx+sz,cy],[cx,cy-sz,cx,cy-gap],[cx,cy+gap,cx,cy+sz]].forEach(([x1,y1,x2,y2])=>{
+      gctx.beginPath();gctx.moveTo(x1,y1);gctx.lineTo(x2,y2);gctx.stroke();
+    });
+    gctx.beginPath();gctx.arc(cx,cy,5,0,Math.PI*2);
+    gctx.fillStyle='rgba(0,255,136,.3)';gctx.fill();gctx.stroke();
+    gctx.restore();
+  }
+}
+
+// ── GAME LOOP ──
+function loop(){
+  if(!gameActive)return;
+  const now=Date.now();
+  targets=targets.filter(t=>!t.hit&&(now-t.born)<t.life);
+  if(targets.length<5&&Math.random()<.05)spawnTarget();
+  if(shootCD>0)shootCD--;
+  draw();
+  animId=requestAnimationFrame(loop);
+}
+
+// ── SHOOT ──
+function tryShoot(){
+  if(!indexTip||shootCD>0||!gameActive)return;
+  shootCD=22;
+  const W=gcC.width,H=gcC.height;
+  const sx=indexTip.x*W,sy=indexTip.y*H;
+  let hit=false;
+  targets.forEach(t=>{
+    if(t.hit)return;
+    const dx=sx-t.x,dy=sy-t.y;
+    if(dx*dx+dy*dy<(t.r+12)*(t.r+12)){
+      t.hit=true;hit=true;
+      spawnParticles(t.x,t.y,t.color);
+      shots.push({x1:sx,y1:sy,x2:t.x,y2:t.y,life:1,color:t.color});
+      score++;
+      $('hud-score').textContent=score;
+      vibrate(40);
+    }
+  });
+  if(!hit)shots.push({x1:sx,y1:sy,x2:sx+(Math.random()-.5)*60,y2:sy+(Math.random()-.5)*60,life:1,color:'#ffffff66'});
+}
+
+function vibrate(ms){if(navigator.vibrate)navigator.vibrate(ms);}
+
+// ── MEDIAPIPE ──
+const hands=new Hands({locateFile:f=>`https://cdn.jsdelivr.net/npm/@mediapipe/hands/${f}`});
+hands.setOptions({maxNumHands:1,modelComplexity:1,minDetectionConfidence:.75,minTrackingConfidence:.6});
+
+hands.onResults(res=>{
+  const W=overlayC.width,H=overlayC.height;
+  octx.clearRect(0,0,W,H);
+
+  if(!res.multiHandLandmarks||!res.multiHandLandmarks.length){
+    indexTip=null;
+    setStatus('NO HAND','#ff2d2d');
+    return;
+  }
+  const lm=res.multiHandLandmarks[0];
+  drawConnectors(octx,lm,HAND_CONNECTIONS,{color:'rgba(0,207,255,.18)',lineWidth:1});
+  drawLandmarks(octx,lm,{color:'rgba(0,207,255,.45)',lineWidth:1,radius:2});
+
+  const indexUp=lm[8].y<lm[6].y-.04;
+  const midCurled=lm[12].y>lm[10].y;
+  const ringCurled=lm[16].y>lm[14].y;
+  const pinkCurled=lm[20].y>lm[18].y;
+  const isGun=indexUp&&midCurled&&ringCurled&&pinkCurled;
+
+  if(gameActive){
+    if(isGun){
+      indexTip={x:1-lm[8].x,y:lm[8].y};
+      setStatus('AIMING','#00ff88');
+      fingerWasUp=true;
+    } else if(fingerWasUp&&!indexUp){
+      tryShoot();
+      fingerWasUp=false;
+      setStatus('FIRE !','#ffb800');
+      setTimeout(()=>{if(gameActive)setStatus('READY','#00cfff');},250);
+    } else {
+      indexTip=null;fingerWasUp=false;
+      setStatus('SHOW GUN','#00cfff');
+    }
+  }
+});
+
+function setStatus(t,c){
+  const el=$('hud-status-val');
+  el.textContent=t;el.style.color=c;
+}
+
+// ── START ──
+async function startGame(){
+  hide('start-screen');hide('result-screen');show('game-screen');
+
+  try{
+    // Request rear camera on mobile for better experience, fallback to user
+    let stream;
+    try{
+      stream=await navigator.mediaDevices.getUserMedia({
+        video:{facingMode:{ideal:'environment'},width:{ideal:1280},height:{ideal:720}}
+      });
+    } catch(e){
+      stream=await navigator.mediaDevices.getUserMedia({
+        video:{facingMode:'user',width:{ideal:1280},height:{ideal:720}}
+      });
+    }
+    vid.srcObject=stream;
+    await new Promise(r=>{vid.onloadedmetadata=r;});
+    vid.play();
+    await new Promise(r=>setTimeout(r,400));
+    resize();
+  } catch(e){
+    hide('game-screen');show('start-screen');
+    const err=$('err');
+    err.style.display='block';
+    if(e.name==='NotAllowedError'){
+      err.innerHTML='⚠ Camera denied.<br>Tap the camera/lock icon in your browser address bar → Allow → reload.';
+    } else {
+      err.textContent='Camera error: '+e.message;
+    }
+    return;
+  }
+
+  score=0;timeLeft=30;targets=[];particles=[];shots=[];
+  fingerWasUp=false;shootCD=0;
+  $('hud-score').textContent='0';
+  const tv=$('hud-time-val');
+  tv.textContent='30';tv.classList.remove('warn');
+
+  mpCam=new Camera(vid,{
+    onFrame:async()=>{await hands.send({image:vid});},
+    width:1280,height:720
+  });
+  mpCam.start();
+
+  for(let i=0;i<4;i++)spawnTarget();
+  gameActive=true;
+  loop();
+
+  timerInt=setInterval(()=>{
+    timeLeft--;
+    tv.textContent=timeLeft;
+    if(timeLeft<=10)tv.classList.add('warn');
+    if(timeLeft<=0)endGame();
+  },1000);
+}
+
+function endGame(){
+  gameActive=false;
+  clearInterval(timerInt);
+  cancelAnimationFrame(animId);
+  if(mpCam){mpCam.stop();mpCam=null;}
+  if(vid.srcObject){vid.srcObject.getTracks().forEach(t=>t.stop());vid.srcObject=null;}
+  hide('game-screen');show('result-screen');
+  $('final-score').textContent=score;
+  vibrate([50,30,100]);
+}
+
+function show(id){$s=document.getElementById(id);$s.classList.remove('hidden');}
+function hide(id){$s=document.getElementById(id);$s.classList.add('hidden');}
+
+$('start-btn').addEventListener('click',startGame);
+$('restart-btn').addEventListener('click',()=>{
+  $('hud-time-val').classList.remove('warn');
+  startGame();
+});
+
+// PWA service worker (inline via blob)
+if('serviceWorker' in navigator){
+  const sw=`
+self.addEventListener('install',e=>self.skipWaiting());
+self.addEventListener('activate',e=>clients.claim());
+self.addEventListener('fetch',e=>e.respondWith(fetch(e.request).catch(()=>new Response(''))));
+`;
+  const blob=new Blob([sw],{type:'application/javascript'});
+  const url=URL.createObjectURL(blob);
+  navigator.serviceWorker.register(url).catch(()=>{});
+}
+</script>
+
+<!-- PWA Manifest via inline JSON -->
+<script>
+const manifest={
+  name:'Finger Gun Game',
+  short_name:'Finger Gun',
+  start_url:'.',
+  display:'fullscreen',
+  background_color:'#080b10',
+  theme_color:'#0a0c10',
+  orientation:'portrait',
+  icons:[
+    {src:'data:image/svg+xml,'+encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect width='192' height='192' rx='24' fill='%230a0c10'/><text x='96' y='130' text-anchor='middle' font-size='110' font-family='serif'>☝️</text></svg>`),sizes:'192x192',type:'image/svg+xml'},
+  ]
+};
+const mblob=new Blob([JSON.stringify(manifest)],{type:'application/json'});
+const murl=URL.createObjectURL(mblob);
+const link=document.createElement('link');
+link.rel='manifest';link.href=murl;
+document.head.appendChild(link);
+</script>
+</body>
+</html>
